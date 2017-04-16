@@ -1,26 +1,23 @@
-var express = require('express')
-var app = express()
 var hue = require('./lib/hue')
+var program = require('commander')
 
-var port = 3000
-var hueSystem
+program
+    .version('0.0.1')
+    .option('-s, --state [value]', 'Change state to [on]', 'on')
+    .option('-d, --device [name]', 'Select the specified device [bedroom]', 'bedroom')
+    .parse(process.argv);
 
-hue.initialize(function(obj){
-    hueSystem = obj
-})
-
-app.get('/lights', function(req, res) {
+hue.initialize(function(hueSystem){
     var bridges = hueSystem.bridges
+    var turnOn = program.state && program.state === "on"
 
-    hue.getLight(bridges, req.query.name, function(light) {
-        var turnOn = req.query.state && req.query.state === "on"
+    hue.getLight(bridges, program.device, function(light) {
         hue.setLightState(bridges[0], light, turnOn, function() {
-            res.send(req.query.name + " is now " + (turnOn) ? "on" : "off")
+            console.log(program.device + " is now " + (turnOn) ? "on" : "off")
         })
     })
 })
 
-app.listen(port, function() {
-    console.log('server listening on port ' + port)
-})
-
+console.log('your command:');
+if (program.state) console.log('  - %s state ', program.state);
+console.log('  - %s device', program.device);
