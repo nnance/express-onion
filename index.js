@@ -11,11 +11,15 @@ hue.initialize(function(obj){
 
 app.get('/lights', function(req, res) {
     var bridges = hueSystem.bridges
+    var deviceName = req.query.name
+    var state = req.query.state
 
-    hue.getLight(bridges, req.query.name, function(light) {
-        var turnOn = req.query.state && req.query.state === "on"
+    console.log('/lights %s %s', deviceName, state)
+
+    hue.getLight(bridges, deviceName, function(light) {
+        var turnOn = state && state === "on"
         hue.setLightState(bridges[0], light, turnOn, function() {
-            res.send(req.query.name + " is now " + (turnOn) ? "on" : "off")
+            res.send(deviceName + " is now " + (turnOn) ? "on" : "off")
         })
     })
 })
