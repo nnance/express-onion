@@ -11,10 +11,11 @@ export interface IRegisteredBridge extends hue.IUpnpSearchResultItem {
     user: string
 }
 
-export enum ILightState {
-    On,
-    Off
+export interface IHueSystem {
+    bridges: IRegisteredBridge[]
 }
+
+export enum ILightState { On, Off }
 
 const displayBridges = (bridges: hue.IUpnpSearchResultItem[]) =>
     console.log("Hue Bridges Found: " + JSON.stringify(bridges))
@@ -22,16 +23,20 @@ const displayBridges = (bridges: hue.IUpnpSearchResultItem[]) =>
 const displayUserResult = (result: string[]) =>
     console.log("Created user: " + JSON.stringify(result))
 
-const displayResult = (result) =>
+const printResult = (result) =>
     console.log(JSON.stringify(result, null, 2))
 
-const displayError = (err: string) => console.log(err)
+const printError = (err: string) => console.log(err)
 
-const findBridge = () => {
+const findBridges = (): Promise<hue.IUpnpSearchResultItem[]> => {
     return hue.nupnpSearch()
-        .then(displayBridges)
-        .catch(displayError)
+        .then(results => {
+            displayBridges(results)
+            return results
+        })
+        .catch(printError)
 }
+
 
 const transformBridge = (bridge: hue.IUpnpSearchResultItem, user: string): IRegisteredBridge => {
     const registeredBridge = bridge as IRegisteredBridge
@@ -43,39 +48,41 @@ const registerUser = (bridges: hue.IUpnpSearchResultItem[]): Promise<IRegistered
     console.log(`registering user on ${bridges.length} bridges`)
 
     const api = new hue.HueApi()
-    const regRequests = bridges.map(bridge => {return api.createUser(bridge.ipaddress, "Omega IoT")})
+    const regRequests = bridges.map(bridge => api.createUser(bridge.ipaddress, "Omega IoT"))
     return Promise.all(regRequests)
         .then(users => {
             displayUserResult(users)
-            return users.map((user, idx) => {return transformBridge(bridges[idx], user)})
+            return users.map((user, idx) => transformBridge(bridges[idx], user))
         })
-        .catch(displayError)
 }
 
-const writeRegistration = (bridges: IRegisteredBridge[]) => {
+const writeHueSystem = (hueSystem: IHueSystem): Promise<IHueSystem> => {
     return new Promise((resolve, reject) => {
-        jsonfile.writeFile(file, {bridges}, (err) => {
+        jsonfile.writeFile(file, hueSystem, (err) => {
             if (err) {
                 console.error(err)
                 reject(err)
             }
-            resolve()
-        })        
+            resolve(hueSystem)
+        })
     })
 }
 
-const getBridge = (bridge: IRegisteredBridge) => {
+const getBridge = (bridge: IRegisteredBridge): Promise<hue.IBridgeConfig> => {
     const api = new hue.HueApi(bridge.ipaddress, bridge.user)
     return api.getConfig()
-        .then(displayResult)
-        .catch(displayError)
+        .then(config => {
+            printResult(config)
+            return config
+        })
+        .catch(printError)
 }
 
 export function getLights(bridge: IRegisteredBridge): Promise<hue.ILight[]> {
     const api = new hue.HueApi(bridge.ipaddress, bridge.user)
     return api.lights()
-        .then((results) => {return results.lights})
-        .catch(displayError)
+        .then(results => results.lights)
+        .catch(printError)
 }
 
 export function setLightState(bridge: IRegisteredBridge, light: hue.ILight, state: ILightState): Promise<boolean> {
@@ -94,30 +101,25 @@ export function setLightState(bridge: IRegisteredBridge, light: hue.ILight, stat
 
 export function getLight(bridges: IRegisteredBridge[], name: String): Promise<hue.ILight> {
     return getLights(bridges[0])
-        .then((lights) => {return lights.find((light) => light.name === name)})
+        .then(lights => lights.find(light => light.name === name))
 }
 
-export function initialize() {
+export function initialize(): Promise<IHueSystem> {
     return new Promise((resolve, reject) => {
-        jsonfile.readFile(file, function(err, obj) {
+        jsonfile.readFile(file, function (err, hueSystem: IHueSystem) {
             if (err) {
-                hue.nupnpSearch()
-                    .then((bridges) => {
-                        displayBridges(bridges)
-                        registerUser(bridges)
-                            .then((registeredBridges) => {
-                                writeRegistration(registeredBridges)
-                                    .then((obj) => {
-                                        console.log('registration completed')
-                                        resolve(obj)
-                                    })
-                                    .catch((err) => reject(err))
-                            })
-                            .catch((err) => reject(err))
+                findBridges()
+                    .then(registerUser)
+                    .then(bridges => { return { bridges } as IHueSystem })
+                    .then(writeHueSystem)
+                    .then(resolve)
+                    .then(() => console.log('registration completed'))
+                    .catch(err => {
+                        printError(err)
+                        reject(err)
                     })
-                    .catch((err) => reject(err))
             } else {
-                resolve(obj)
+                resolve(hueSystem)
             }
         })
     })

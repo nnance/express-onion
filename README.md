@@ -14,10 +14,10 @@ Though the initial commands are setup to turn on a single device the purpose of 
 
 Turn a specific light on
 ```ssh
-curl 'http://omega-d353.local:3000/lights?name=Floor%20lamp&state=on'
+curl 'http://localhost:3000/lights?name=Floor%20lamp&state=on'
 ```
 
 Turn a specific light off
 ```ssh
-curl 'http://omega-d353.local:3000/lights?name=Floor%20lamp&state=off'
+curl 'http://localhost:3000/lights?name=Floor%20lamp&state=off'
 ```
