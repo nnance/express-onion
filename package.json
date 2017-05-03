@@ -11,6 +11,12 @@
   "dependencies": {
     "express": "^4.15.2",
     "jsonfile": "^2.4.0",
-    "node-hue-api": "^2.4.2"
+    "node-hue-api": "^2.4.2",
+    "typescript": "^2.3.2"
+  },
+  "devDependencies": {
+    "@types/express": "^4.0.35",
+    "@types/node": "^7.0.14",
+    "@types/node-hue-api": "^2.3.0"
   }
 }
