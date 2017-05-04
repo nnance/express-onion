@@ -6,9 +6,21 @@ const port = 3000
 
 hue.initialize()
     .then(hueSystem => {
-        app.get('/lights', (req, res) => {
+        app.get('/bedtime', (req, res) => {
+            Promise.all([
+                hue.setLightStateByName(hueSystem.bridges, 'Nick Bedroom', hue.ILightState.Off),
+                hue.setLightStateByName(hueSystem.bridges, 'Rhonda Bedroom', hue.ILightState.Off)
+            ]).then(results => res.send(results))
+        })
+        app.get('/wakeup', (req, res) => {
+            Promise.all([
+                hue.setLightStateByName(hueSystem.bridges, 'Nick Bedroom', hue.ILightState.On),
+                hue.setLightStateByName(hueSystem.bridges, 'Rhonda Bedroom', hue.ILightState.On)
+            ]).then(results => res.send(results))
+        })
+        app.get('/lights/:name', (req, res) => {
             const bridges = hueSystem.bridges
-            const deviceName = req.query.name
+            const deviceName = req.params.name
             const state = req.query.state
 
             console.log(`/lights ${deviceName} ${state}`)
@@ -25,6 +37,11 @@ hue.initialize()
                     res.status(500).send({error: err.message})
                 })
         })
+        app.get('/lights', (req, resp) => {
+            console.log('/lights')
+            hue.getLights(hueSystem.bridges[0]).then(lights => resp.send(lights))
+        })
+
     })
     .catch(err => process.exit(err))
 

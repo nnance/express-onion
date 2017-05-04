@@ -78,6 +78,15 @@ const getBridge = (bridge: IRegisteredBridge): Promise<hue.IBridgeConfig> => {
         .catch(printError)
 }
 
+const readConfig = (file: string): Promise<IHueSystem> => {
+    return new Promise((resolve, reject) => {
+        jsonfile.readFile(file, (err, hueSystem: IHueSystem) => {
+            if (err) reject(err)
+            else resolve(hueSystem)
+        })
+    })
+}
+
 export function getLights(bridge: IRegisteredBridge): Promise<hue.ILight[]> {
     const api = new hue.HueApi(bridge.ipaddress, bridge.user)
     return api.lights()
@@ -99,28 +108,27 @@ export function setLightState(bridge: IRegisteredBridge, light: hue.ILight, stat
     return api.setLightState(light.id, newState)
 }
 
+export function setLightStateByName(bridges: IRegisteredBridge[], name: string, state: ILightState): Promise<boolean> {
+    return getLight(bridges, name)
+        .then(light => setLightState(bridges[0], light, state))
+}
+
 export function getLight(bridges: IRegisteredBridge[], name: String): Promise<hue.ILight> {
     return getLights(bridges[0])
         .then(lights => lights.find(light => light.name === name))
 }
 
 export function initialize(): Promise<IHueSystem> {
-    return new Promise((resolve, reject) => {
-        jsonfile.readFile(file, function (err, hueSystem: IHueSystem) {
-            if (err) {
-                findBridges()
-                    .then(registerUser)
-                    .then(bridges => { return { bridges } as IHueSystem })
-                    .then(writeHueSystem)
-                    .then(resolve)
-                    .then(() => console.log('registration completed'))
-                    .catch(err => {
-                        printError(err)
-                        reject(err)
-                    })
-            } else {
-                resolve(hueSystem)
-            }
+    return readConfig(file)
+        .catch(() => {
+            findBridges()
+                .then(registerUser)
+                .then(bridges => { return { bridges } as IHueSystem })
+                .then(writeHueSystem)
+                .then(() => console.log('registration completed'))
+                .catch(err => {
+                    printError(err)
+                    throw err
+                })
         })
-    })
 }
