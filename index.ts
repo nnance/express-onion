@@ -11,6 +11,10 @@ hue.discover()
     .then(() => console.log('Hue discovery complete'))
     .catch(err => process.exit(err))
 
+wemo.discover()
+    .then(() => console.log('Wemo discovery complete'))
+    .catch(err => process.exit(err))
+
 app.get('/bedtime', (req, res) => 
     bedroom.goodnight().then(x => res.send(x)))
 
