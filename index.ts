@@ -6,7 +6,7 @@ import * as control from './automation/control'
 const app = express()
 const port = 3000
 
-hue.initialize()
+hue.discover()
     .then(hueSystem => {
         app.get('/bedtime', (req, res) => 
             bedroom.goodnight(hueSystem).then(x => res.send(x)))

@@ -118,7 +118,7 @@ export function getLight(bridges: IRegisteredBridge[], name: String): Promise<hu
         .then(lights => lights.find(light => light.name === name))
 }
 
-export function initialize(): Promise<IHueSystem> {
+export function discover(): Promise<IHueSystem> {
     return readConfig(file)
         .catch(() => {
             findBridges()
